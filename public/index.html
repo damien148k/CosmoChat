@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cosmos Chat · parle avec les astres</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✶</text></svg>" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <canvas id="sky" aria-hidden="true"></canvas>
+
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">✶</span>
+        <div>
+          <h1>Cosmos Chat</h1>
+          <p>Braque l'antenne, écoute, et parle avec les astres.</p>
+        </div>
+      </div>
+      <div class="mode" id="mode" title="">connexion…</div>
+    </header>
+
+    <nav class="sky-map" aria-label="Carte du ciel">
+      <h2>Carte du ciel</h2>
+      <ul id="bodies"></ul>
+    </nav>
+
+    <main class="station">
+      <section class="receiver" id="receiver">
+        <div class="receiver-head">
+          <div class="target">
+            <span class="target-glyph" id="t-glyph">✶</span>
+            <div>
+              <h2 id="t-name">Choisis un astre</h2>
+              <p id="t-meta">…</p>
+            </div>
+          </div>
+          <div class="receiver-actions">
+            <button class="btn" id="listen" aria-pressed="false" title="Écouter le signal (traduction sonore)">
+              <span class="ico">◖))</span> Écouter
+            </button>
+            <button class="btn ghost" id="perturb" title="Provoquer un événement cosmique">⚡ Perturber</button>
+          </div>
+        </div>
+
+        <div class="scope-wrap">
+          <canvas id="scope"></canvas>
+          <div class="event" id="event" hidden></div>
+        </div>
+
+        <dl class="readouts">
+          <div><dt>Fréquence</dt><dd id="r-freq">—</dd></div>
+          <div><dt>Intensité</dt><dd><span class="bar"><i id="r-int"></i></span><b id="r-int-v">—</b></dd></div>
+          <div><dt>Régularité</dt><dd><span class="bar"><i id="r-reg"></i></span><b id="r-reg-v">—</b></dd></div>
+          <div><dt>Trace décodée</dt><dd id="r-glyph" class="glyph">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="chat" aria-live="polite">
+        <div class="log" id="log"></div>
+        <div class="chips" id="chips"></div>
+        <form class="composer" id="composer" autocomplete="off">
+          <textarea id="input" rows="1" placeholder="Envoie un message dans le vide…" maxlength="2000"></textarea>
+          <button class="btn send" type="submit" id="send" aria-label="Transmettre">Transmettre ➚</button>
+        </form>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>

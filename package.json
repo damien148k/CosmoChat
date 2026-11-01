@@ -1,0 +1,12 @@
+{
+  "name": "cosmos-chat",
+  "version": "0.1.0",
+  "description": "Discute avec les astres : un LLM interprète leurs signaux en langage naturel.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": { "node": ">=18" }
+}
