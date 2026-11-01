@@ -13,6 +13,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; margin: 0; }
 body {
   background: radial-gradient(ellipse at 20% 0%, #1a1240 0%, transparent 55%),
@@ -85,7 +86,8 @@ body {
 .body-card .unread { width: 7px; height: 7px; border-radius: 50%; background: var(--c); display: inline-block; margin-left: 6px; vertical-align: middle; box-shadow: 0 0 8px var(--c); }
 
 /* ---------- Station ---------- */
-.station { display: grid; grid-template-rows: auto 1fr; gap: 16px; min-height: 0; }
+.station { display: grid; grid-template-rows: auto 1fr; gap: 16px; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.station > .chat { min-height: 340px; }
 
 .receiver {
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
@@ -113,6 +115,15 @@ body {
 .btn .ico { font-family: var(--mono); letter-spacing: -2px; margin-right: 4px; }
 
 .scope-wrap { position: relative; margin: 12px 0 10px; }
+.views { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; z-index: 1; }
+.views button {
+  font: 11px var(--mono); color: var(--muted); cursor: pointer; letter-spacing: .04em;
+  background: rgba(0,0,0,0.45); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px;
+}
+.views button[aria-pressed="true"] { color: #050816; background: var(--accent); border-color: var(--accent); }
+#spectro {
+  width: 100%; height: 130px; display: block; border-radius: 10px; background: #000; border: 1px solid var(--line);
+}
 #scope {
   width: 100%; height: 130px; display: block; border-radius: 10px;
   background:
@@ -136,6 +147,31 @@ body {
 .bar { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); box-shadow: 0 0 10px var(--accent); transition: width .4s; }
 .glyph { color: var(--accent); letter-spacing: 1px; }
+
+/* ---------- Laboratoire ---------- */
+.lab { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.lab summary {
+  cursor: pointer; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); font-weight: 600;
+  display: flex; align-items: center; gap: 10px; list-style: none;
+}
+.lab summary::before { content: "▸"; transition: transform .2s; }
+.lab[open] summary::before { transform: rotate(90deg); }
+.lab summary .src { font-family: var(--mono); letter-spacing: 0; text-transform: none; font-weight: 400; color: var(--accent); }
+.lab-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+.lab-box { background: rgba(0,0,0,0.22); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-width: 0; font-size: 12px; }
+.lab-box h3 { margin: 0 0 6px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); display: flex; justify-content: space-between; align-items: center; }
+.lab-box ul { margin: 0; padding-left: 14px; color: var(--text); line-height: 1.45; }
+.lab-box .hint, .lab-actions .hint { color: var(--muted); margin: 0; line-height: 1.4; }
+.lab-box .check { display: flex; align-items: center; gap: 6px; margin-top: 8px; color: var(--text); cursor: pointer; }
+.lab-box .check input { accent-color: var(--accent); }
+.lab-box .link { font: 10px var(--mono); color: var(--accent); background: none; border: none; cursor: pointer; text-decoration: underline dotted; letter-spacing: 0; text-transform: none; }
+.lab-box .link:disabled { opacity: .4; cursor: default; }
+.runes { font-size: 15px; letter-spacing: 2px; color: var(--accent); word-break: break-all; line-height: 1.3; text-shadow: 0 0 8px var(--accent); min-height: 20px; }
+.verdict { display: grid; grid-template-columns: 1fr 70px 36px; gap: 6px; align-items: center; margin: 3px 0; color: var(--muted); }
+.verdict.top { color: var(--text); font-weight: 600; }
+.verdict b { font-family: var(--mono); font-weight: 400; text-align: right; }
+.lab-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; }
+.lab-actions .btn { font-size: 12px; padding: 6px 12px; cursor: pointer; }
 
 /* ---------- Chat ---------- */
 .chat {
@@ -180,7 +216,9 @@ body {
   .body-card .g { width: 30px; height: 30px; font-size: 15px; }
   .body-card .d { display: none; }
   .readouts { grid-template-columns: repeat(2, 1fr); }
-  #scope { height: 90px; }
+  #scope, #spectro { height: 90px; }
+  .lab-grid { grid-template-columns: 1fr; }
+  .views { top: 4px; right: 4px; }
   .chat { min-height: 60vh; }
   .msg { max-width: 92%; }
   .brand p { display: none; }

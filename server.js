@@ -60,7 +60,7 @@ function send(res, status, text) {
   res.end(text);
 }
 
-function readBody(req, limit = 200_000) {
+function readBody(req, limit = 600_000) {
   return new Promise((resolve, reject) => {
     let size = 0;
     const chunks = [];
@@ -81,7 +81,10 @@ async function handleChat(req, res) {
   } catch (e) {
     return send(res, 400, "Requête illisible : " + e.message);
   }
-  const { body, signal, messages } = payload || {};
+  const { body, signal, messages, analysis } = payload || {};
+  // Spectrogramme : une image JPEG en base64, 300 Ko max, sinon on l'ignore.
+  const image = typeof payload.image === "string" && payload.image.length < 400_000 && /^[A-Za-z0-9+/=]+$/.test(payload.image)
+    ? payload.image : null;
   if (!body || !signal || !Array.isArray(messages) || messages.length === 0) {
     return send(res, 400, "Il manque l'astre, son signal ou les messages.");
   }
@@ -109,7 +112,8 @@ async function handleChat(req, res) {
   }
 
   try {
-    await p.stream(buildSystemPrompt(body, signal), clean, (text) => res.write(text));
+    const hasImage = Boolean(image && p.vision);
+    await p.stream(buildSystemPrompt(body, signal, analysis, hasImage), clean, (text) => res.write(text), hasImage ? image : null);
   } catch (e) {
     console.error(e.message);
     const hint = p.name === "ollama" ? " Ollama est-il toujours lancé ?" : " Vérifie ta configuration ou réessaie.";
@@ -123,7 +127,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "GET" && req.url === "/api/status") {
     const p = await getProvider();
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ mode: p.name, label: p.label, model: p.model, warning: p.warning || p.reason || null }));
+    return res.end(JSON.stringify({ mode: p.name, label: p.label, model: p.model, vision: Boolean(p.vision), warning: p.warning || p.reason || null }));
   }
   if (req.method === "GET") return serveStatic(req, res);
   send(res, 405, "Méthode inconnue dans cette galaxie.");
@@ -132,7 +136,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, async () => {
   const p = await getProvider();
   console.log(`\n  ✦ Cosmos Chat écoute sur http://localhost:${PORT}`);
-  console.log(`  ✦ Interprète : ${p.label}`);
+  console.log(`  ✦ Interprète : ${p.label}${p.vision ? " · voit les spectrogrammes" : ""}`);
   if (p.warning) console.log(`  ⚠ ${p.warning}`);
   if (p.reason) console.log(`  ✦ (${p.reason} : les astres répondront avec des phrases locales)`);
   console.log("");
