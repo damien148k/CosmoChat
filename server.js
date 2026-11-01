@@ -1,6 +1,7 @@
 // Cosmos Chat — petit serveur sans dépendance (Node 18+)
-// Sert l'interface et relaie la conversation vers l'API Claude.
-// Sans clé API, il bascule en "mode rêve" : des réponses générées localement.
+// Sert l'interface et relaie la conversation vers un "interprète" :
+// un modèle open source local (Ollama), un service compatible OpenAI, ou Claude.
+// Sans interprète, il bascule en "mode rêve" : des réponses générées localement.
 
 import http from "node:http";
 import { readFile } from "node:fs/promises";
@@ -9,13 +10,25 @@ import { fileURLToPath } from "node:url";
 import { loadEnv } from "./lib/env.js";
 import { buildSystemPrompt } from "./lib/prompt.js";
 import { dreamReply } from "./lib/dream.js";
+import { resolveProvider } from "./lib/providers.js";
 
 loadEnv();
 
 const PORT = Number(process.env.PORT || 3000);
-const API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const API_URL = process.env.COSMOS_API_URL || "https://api.anthropic.com/v1/messages";
-const MODEL = process.env.COSMOS_MODEL || "claude-sonnet-5-5";
+
+// L'interprète est choisi au démarrage. En mode rêve, on réessaie de temps en temps :
+// si tu lances Ollama après le serveur, il sera détecté tout seul.
+let provider = null;
+let checkedAt = 0;
+async function getProvider() {
+  if (!provider || (provider.name === "reve" && Date.now() - checkedAt > 10_000)) {
+    const before = provider?.name;
+    provider = await resolveProvider();
+    checkedAt = Date.now();
+    if (before && before !== provider.name) console.log(`  ✦ Nouvel interprète : ${provider.label}`);
+  }
+  return provider;
+}
 const PUBLIC_DIR = join(fileURLToPath(new URL(".", import.meta.url)), "public");
 
 const MIME = {
@@ -78,14 +91,15 @@ async function handleChat(req, res) {
     content: String(m.content || "").slice(0, 4000),
   })).filter((m) => m.content);
 
+  const p = await getProvider();
   res.writeHead(200, {
     "Content-Type": "text/plain; charset=utf-8",
     "Cache-Control": "no-cache",
-    "X-Cosmos-Mode": API_KEY ? "claude" : "reve",
+    "X-Cosmos-Mode": p.name,
   });
 
-  if (!API_KEY) {
-    // Mode rêve : on "tape" la réponse lettre par lettre pour l'effet.
+  if (!p.stream) {
+    // Mode rêve : on "tape" la réponse mot par mot pour l'effet.
     const text = dreamReply(body, signal, clean);
     for (const word of text.split(/(\s+)/)) {
       res.write(word);
@@ -95,71 +109,31 @@ async function handleChat(req, res) {
   }
 
   try {
-    const upstream = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 700,
-        stream: true,
-        system: buildSystemPrompt(body, signal),
-        messages: clean,
-      }),
-    });
-
-    if (!upstream.ok || !upstream.body) {
-      const err = await upstream.text();
-      console.error("Erreur API Claude", upstream.status, err);
-      res.write(`\n[interférence ${upstream.status} : la transmission a été brouillée. Vérifie ta clé API ou réessaie.]`);
-      return res.end();
-    }
-
-    // Relais du flux SSE : on n'envoie au navigateur que le texte.
-    const decoder = new TextDecoder();
-    let buffer = "";
-    for await (const chunk of upstream.body) {
-      buffer += decoder.decode(chunk, { stream: true });
-      let idx;
-      while ((idx = buffer.indexOf("\n\n")) !== -1) {
-        const event = buffer.slice(0, idx);
-        buffer = buffer.slice(idx + 2);
-        const dataLine = event.split("\n").find((l) => l.startsWith("data:"));
-        if (!dataLine) continue;
-        try {
-          const data = JSON.parse(dataLine.slice(5).trim());
-          if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
-            res.write(data.delta.text);
-          } else if (data.type === "error") {
-            res.write(`\n[interférence : ${data.error?.message || "inconnue"}]`);
-          }
-        } catch { /* fragment incomplet, on ignore */ }
-      }
-    }
-    res.end();
+    await p.stream(buildSystemPrompt(body, signal), clean, (text) => res.write(text));
   } catch (e) {
-    console.error(e);
-    res.write("\n[le signal s'est perdu dans le vide interstellaire… réessaie]");
-    res.end();
+    console.error(e.message);
+    const hint = p.name === "ollama" ? " Ollama est-il toujours lancé ?" : " Vérifie ta configuration ou réessaie.";
+    res.write(`\n[${e.message.startsWith("interférence") ? e.message : "le signal s'est perdu dans le vide interstellaire"}.${hint}]`);
   }
+  res.end();
 }
 
 const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && req.url === "/api/chat") return handleChat(req, res);
   if (req.method === "GET" && req.url === "/api/status") {
+    const p = await getProvider();
     res.writeHead(200, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ mode: API_KEY ? "claude" : "reve", model: API_KEY ? MODEL : null }));
+    return res.end(JSON.stringify({ mode: p.name, label: p.label, model: p.model, warning: p.warning || p.reason || null }));
   }
   if (req.method === "GET") return serveStatic(req, res);
   send(res, 405, "Méthode inconnue dans cette galaxie.");
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
+  const p = await getProvider();
   console.log(`\n  ✦ Cosmos Chat écoute sur http://localhost:${PORT}`);
-  console.log(API_KEY
-    ? `  ✦ Interprète : Claude (${MODEL})\n`
-    : "  ✦ Pas de clé ANTHROPIC_API_KEY : mode rêve (réponses locales)\n");
+  console.log(`  ✦ Interprète : ${p.label}`);
+  if (p.warning) console.log(`  ⚠ ${p.warning}`);
+  if (p.reason) console.log(`  ✦ (${p.reason} : les astres répondront avec des phrases locales)`);
+  console.log("");
 });

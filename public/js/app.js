@@ -36,11 +36,14 @@ function saveHistories() {
 }
 
 // ---------- Mode (Claude ou rêve) ----------
-fetch("/api/status").then((r) => r.json()).then(({ mode, model }) => {
+fetch("/api/status").then((r) => r.json()).then(({ mode, label, warning }) => {
   const el = $("mode");
-  el.classList.add(mode);
-  el.textContent = mode === "claude" ? `interprète : Claude` : "mode rêve";
-  el.title = mode === "claude" ? `Modèle : ${model}` : "Ajoute ANTHROPIC_API_KEY dans .env pour que Claude interprète les signaux.";
+  el.classList.add(mode === "reve" ? "reve" : "live");
+  el.textContent = mode === "reve" ? "mode rêve" : `interprète : ${label}`;
+  el.title = warning || (mode === "reve"
+    ? "Lance Ollama (gratuit, open source) ou configure un interprète dans .env pour que les astres parlent vraiment."
+    : "Les signaux sont traduits par ce modèle.");
+  if (warning) el.classList.add("warn");
 }).catch(() => { $("mode").textContent = "station hors ligne"; });
 
 // ---------- Carte du ciel ----------

@@ -2,20 +2,44 @@
 
 Braque ton antenne vers un astre, écoute son signal… et discute avec lui en langage naturel.
 
-Cosmos Chat est un projet ludique (pas scientifique) : chaque astre émet un signal simulé, inspiré de ses vraies émissions (le pulsar de Vela bat 11 fois par seconde, Jupiter craque en ondes décamétriques, le fond diffus cosmologique souffle…). Claude reçoit les mesures du signal à chaque message (fréquence, intensité, régularité, événement en cours) et les « traduit » en paroles, avec la personnalité de l'astre.
+Cosmos Chat est un projet ludique (pas scientifique) : chaque astre émet un signal simulé, inspiré de ses vraies émissions (le pulsar de Vela bat 11 fois par seconde, Jupiter craque en ondes décamétriques, le fond diffus cosmologique souffle…). Un modèle de langage (open source et gratuit par défaut) reçoit les mesures du signal à chaque message (fréquence, intensité, régularité, événement en cours) et les « traduit » en paroles, avec la personnalité de l'astre.
 
 ## Lancer
 
 Il faut seulement [Node.js](https://nodejs.org) 18 ou plus. Aucune dépendance à installer.
 
 ```bash
-cp .env.example .env     # puis colle ta clé ANTHROPIC_API_KEY dedans
 npm start                # ou : node server.js
 ```
 
 Ouvre ensuite http://localhost:3000.
 
-Sans clé API, l'application démarre en **mode rêve** : les astres répondent avec des phrases générées localement. C'est jouable, mais beaucoup moins vivant qu'avec Claude.
+## Donner une voix aux astres (gratuitement)
+
+L'app a besoin d'un « interprète », un modèle de langage qui traduit le signal en mots. Le plus simple et gratuit : **Ollama**, qui fait tourner des modèles open source sur ton ordinateur.
+
+1. Installe Ollama : https://ollama.com/download
+2. Télécharge un modèle (une seule fois) :
+   ```bash
+   ollama pull mistral
+   ```
+3. Lance Cosmos Chat : il détecte Ollama tout seul. La pastille en haut à droite affiche `interprète : mistral (local)`.
+
+Quel modèle choisir ?
+
+| Modèle | Taille | Pour qui |
+| --- | --- | --- |
+| `mistral` (défaut) | ≈ 4 Go | bon français, ordinateur récent avec 8 Go de RAM ou plus |
+| `gemma3:4b` | ≈ 3 Go | bon compromis pour un ordinateur moyen |
+| `llama3.2:3b` | ≈ 2 Go | ordinateur modeste, réponses plus simples |
+
+Pour changer de modèle : `ollama pull gemma3:4b`, puis `COSMOS_MODEL=gemma3:4b` dans un fichier `.env` (copie `.env.example`).
+
+**Autres options**, à régler dans `.env` :
+- un service en ligne compatible OpenAI, dont certains ont une offre gratuite (Groq, OpenRouter…) : `OPENAI_BASE_URL`, `OPENAI_API_KEY`, `COSMOS_MODEL` ;
+- l'API Claude (payante) : `ANTHROPIC_API_KEY`.
+
+Sans aucun interprète, l'app tourne en **mode rêve** : les astres répondent avec des phrases toutes faites. C'est jouable, mais beaucoup moins vivant.
 
 ## Ce qu'on peut faire
 
@@ -28,7 +52,8 @@ Sans clé API, l'application démarre en **mode rêve** : les astres répondent 
 ## Structure
 
 ```
-server.js            serveur HTTP sans dépendance, relais en streaming vers l'API Claude
+server.js            serveur HTTP sans dépendance, relais en streaming vers l'interprète
+lib/providers.js     les interprètes : Ollama, service compatible OpenAI, Claude, mode rêve
 lib/prompt.js        consigne système : personnalité + mesures du signal
 lib/dream.js         réponses locales du mode rêve
 public/index.html    l'interface
@@ -47,6 +72,11 @@ Ajoute une entrée dans `public/js/catalog.js` : un nom, une couleur, une `voice
 
 | Variable | Rôle | Défaut |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | clé de l'API Claude | (vide : mode rêve) |
-| `COSMOS_MODEL` | modèle utilisé | `claude-sonnet-5-5` |
+| `COSMOS_PROVIDER` | `auto`, `ollama`, `openai`, `claude` ou `reve` | `auto` |
+| `COSMOS_MODEL` | modèle utilisé | `mistral` (Ollama) |
+| `OLLAMA_URL` | adresse d'Ollama | `http://localhost:11434` |
+| `OPENAI_BASE_URL`, `OPENAI_API_KEY` | service compatible OpenAI | (vide) |
+| `ANTHROPIC_API_KEY` | clé de l'API Claude | (vide) |
 | `PORT` | port du serveur | `3000` |
+
+En mode `auto`, l'ordre est : clé Claude, puis service compatible OpenAI, puis Ollama, puis mode rêve.
