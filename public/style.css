@@ -55,8 +55,8 @@ body {
   background: var(--panel); backdrop-filter: blur(8px);
 }
 .mode::before { content: "●"; margin-right: 6px; color: #666; }
-.mode.claude::before { color: #6dffb0; text-shadow: 0 0 8px #6dffb0; }
-.mode.reve::before { color: #ffcf6d; text-shadow: 0 0 8px #ffcf6d; }
+.mode.live::before { color: #6dffb0; text-shadow: 0 0 8px #6dffb0; }
+.mode.reve::before, .mode.warn::before { color: #ffcf6d; text-shadow: 0 0 8px #ffcf6d; }
 
 /* ---------- Carte du ciel ---------- */
 .sky-map {
