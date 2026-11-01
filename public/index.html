@@ -46,7 +46,12 @@
         </div>
 
         <div class="scope-wrap">
+          <div class="views" role="tablist">
+            <button type="button" data-view="scope" aria-pressed="true">Oscilloscope</button>
+            <button type="button" data-view="spectro" aria-pressed="false">Spectrogramme</button>
+          </div>
           <canvas id="scope"></canvas>
+          <canvas id="spectro" hidden></canvas>
           <div class="event" id="event" hidden></div>
         </div>
 
@@ -56,6 +61,35 @@
           <div><dt>Régularité</dt><dd><span class="bar"><i id="r-reg"></i></span><b id="r-reg-v">—</b></dd></div>
           <div><dt>Trace décodée</dt><dd id="r-glyph" class="glyph">—</dd></div>
         </dl>
+
+        <details class="lab" id="lab" open>
+          <summary>Laboratoire <span class="src" id="lab-source">signal simulé</span></summary>
+          <div class="lab-grid">
+            <div class="lab-box">
+              <h3>1 · Analyse du signal</h3>
+              <ul id="lab-analysis"><li>en attente d'échantillons…</li></ul>
+            </div>
+            <div class="lab-box">
+              <h3>2 · Spectrogramme</h3>
+              <p class="hint" id="lab-vision">connexion à l'interprète…</p>
+              <label class="check"><input type="checkbox" id="send-image" disabled /> envoyer l'image au modèle</label>
+            </div>
+            <div class="lab-box">
+              <h3>3 · Langue de l'astre</h3>
+              <div class="runes" id="lab-runes"></div>
+              <p class="hint" id="lab-lang">transcription en cours…</p>
+            </div>
+            <div class="lab-box">
+              <h3>4 · Détecteur <button type="button" class="link" id="retrain" title="Réentraîner le réseau de neurones sur de nouveaux exemples">réentraîner</button></h3>
+              <div id="lab-detector"><p class="hint">le détecteur se prépare…</p></div>
+            </div>
+          </div>
+          <div class="lab-actions">
+            <label class="btn ghost">⤓ Déposer un enregistrement (WAV, MP3…)<input type="file" id="file" accept="audio/*" hidden /></label>
+            <button type="button" class="btn ghost" id="unload" hidden>↺ retour au signal simulé</button>
+            <span class="hint">Astuce : la NASA publie des sonifications de signaux réels, à déposer ici.</span>
+          </div>
+        </details>
       </section>
 
       <section class="chat" aria-live="polite">
